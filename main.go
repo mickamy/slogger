@@ -54,6 +54,10 @@ var (
 	config Config
 )
 
+func init() {
+	Init(Config{})
+}
+
 // Init initializes the slogger library with the given configuration.
 // This function must be called before using the logger.
 func Init(cfg Config) {
