@@ -109,12 +109,12 @@ stdLogger.Println("This is a standard log message")
 
 You can customize `slogger` by providing a Config struct during initialization.
 
-| Field                   | Description                                                         | Default          |
-|-------------------------|---------------------------------------------------------------------|------------------|
-| `Level`                | Minimum log level (`LevelDebug`, `LevelInfo`, `LevelWarn`, `LevelError`) | `LevelInfo`     |
-| `Output`               | Log output destination (`io.Writer`)                               | `os.Stdout`      |
-| `TrimPathPrefix`       | Prefix to trim from file paths in log output                       | Empty string     |
-| `ContextFieldsExtractor` | Function to extract additional fields from `context.Context`        | `nil` (none)     |
+| Field                    | Description                                                              | Default      |
+|--------------------------|--------------------------------------------------------------------------|--------------|
+| `Level`                  | Minimum log level (`LevelDebug`, `LevelInfo`, `LevelWarn`, `LevelError`) | `LevelInfo`  |
+| `Outputs`                | Log output destinations (`io.Writer`) other than `os.Stdout`             | `nil (none)` |
+| `TrimPathPrefix`         | Prefix to trim from file paths in log output                             | Empty string |
+| `ContextFieldsExtractor` | Function to extract additional fields from `context.Context`             | `nil` (none) |
 
 ---
 
