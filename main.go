@@ -32,10 +32,10 @@ const (
 
 // Config defines the configuration for the slogger library.
 type Config struct {
-	// LogLevel defines the minimum logging level.
+	// Level defines the minimum logging level.
 	Level
 
-	// Outputs is the destination for log output other than standard output.
+	// Outputs is the list of writers to which the logs will be written.
 	Outputs []io.Writer
 
 	// TrimPathPrefix is the prefix to be trimmed from the file path in the log output.
@@ -65,6 +65,9 @@ func ensureDefaults(cfg Config) Config {
 	if cfg.Level == 0 {
 		cfg.Level = LevelInfo
 	}
+	if cfg.Outputs == nil {
+		cfg.Outputs = []io.Writer{os.Stdout}
+	}
 	if cfg.ContextFieldsExtractor == nil {
 		cfg.ContextFieldsExtractor = func(context.Context) []any { return nil }
 	}
@@ -76,16 +79,7 @@ func createHandler() *slog.JSONHandler {
 	options := &slog.HandlerOptions{
 		Level: slog.Level(config.Level),
 	}
-	if config.Outputs == nil {
-		return slog.NewJSONHandler(os.Stdout, options)
-	}
-
-	outputs := make([]io.Writer, len(config.Outputs)+1)
-	for _, output := range config.Outputs {
-		outputs = append(outputs, output)
-	}
-	outputs = append(outputs, os.Stdout)
-	writer := io.MultiWriter(outputs...)
+	writer := io.MultiWriter(config.Outputs...)
 	return slog.NewJSONHandler(writer, options)
 }
 
