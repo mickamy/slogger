@@ -35,9 +35,8 @@ type Config struct {
 	// LogLevel defines the minimum logging level.
 	Level
 
-	// Output is the destination for log output.
-	// If not set, os.Stdout is used.
-	Output io.Writer
+	// Outputs is the destination for log output other than standard output.
+	Outputs []io.Writer
 
 	// TrimPathPrefix is the prefix to be trimmed from the file path in the log output.
 	TrimPathPrefix string
@@ -66,9 +65,6 @@ func ensureDefaults(cfg Config) Config {
 	if cfg.Level == 0 {
 		cfg.Level = LevelInfo
 	}
-	if cfg.Output == nil {
-		cfg.Output = os.Stdout
-	}
 	if cfg.ContextFieldsExtractor == nil {
 		cfg.ContextFieldsExtractor = func(context.Context) []any { return nil }
 	}
@@ -80,7 +76,16 @@ func createHandler() *slog.JSONHandler {
 	options := &slog.HandlerOptions{
 		Level: slog.Level(config.Level),
 	}
-	writer := io.MultiWriter(config.Output, os.Stdout)
+	if config.Outputs == nil {
+		return slog.NewJSONHandler(os.Stdout, options)
+	}
+
+	outputs := make([]io.Writer, len(config.Outputs)+1)
+	for _, output := range config.Outputs {
+		outputs = append(outputs, output)
+	}
+	outputs = append(outputs, os.Stdout)
+	writer := io.MultiWriter(outputs...)
 	return slog.NewJSONHandler(writer, options)
 }
 
