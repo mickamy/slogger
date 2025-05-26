@@ -43,6 +43,10 @@ type Config struct {
 
 	// ContextFieldsExtractor is a function that extracts additional fields from the context.
 	ContextFieldsExtractor func(ctx context.Context) []any
+
+	// Handler is the slog.Handler used for logging.
+	// If nil, a default JSON handler will be created.
+	Handler slog.Handler
 }
 
 var (
@@ -61,7 +65,10 @@ func init() {
 // This function must be called before using the logger.
 func Init(cfg Config) {
 	config = ensureDefaults(cfg)
-	logger = slog.New(createHandler())
+	if cfg.Handler == nil {
+		cfg.Handler = newHandler()
+	}
+	logger = slog.New(config.Handler)
 }
 
 // ensureDefaults ensures the configuration has default values for unset fields.
@@ -78,8 +85,8 @@ func ensureDefaults(cfg Config) Config {
 	return cfg
 }
 
-// createHandler creates a new slog.JSONHandler with the configured options.
-func createHandler() *slog.JSONHandler {
+// newHandler creates a new slog.JSONHandler with the configured options.
+func newHandler() *slog.JSONHandler {
 	options := &slog.HandlerOptions{
 		Level: slog.Level(config.Level),
 	}
@@ -154,5 +161,5 @@ func ErrorCtx(ctx context.Context, msg string, fields ...any) {
 // StandardLogger creates a standard log.Logger instance with the specified level.
 // This is useful for compatibility with libraries expecting a standard logger.
 func StandardLogger(level Level) *log.Logger {
-	return slog.NewLogLogger(createHandler(), slog.Level(level))
+	return slog.NewLogLogger(newHandler(), slog.Level(level))
 }
