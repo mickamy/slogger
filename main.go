@@ -80,17 +80,17 @@ func ensureDefaults(cfg Config) Config {
 		cfg.ContextFieldsExtractor = func(context.Context) []any { return nil }
 	}
 	if cfg.Handler == nil {
-		cfg.Handler = newHandler()
+		cfg.Handler = newHandler(cfg.Level, cfg.Outputs...)
 	}
 	return cfg
 }
 
 // newHandler creates a new slog.JSONHandler with the configured options.
-func newHandler() *slog.JSONHandler {
+func newHandler(level Level, outputs ...io.Writer) *slog.JSONHandler {
 	options := &slog.HandlerOptions{
-		Level: slog.Level(config.Level),
+		Level: slog.Level(level),
 	}
-	writer := io.MultiWriter(config.Outputs...)
+	writer := io.MultiWriter(outputs...)
 	return slog.NewJSONHandler(writer, options)
 }
 
@@ -160,6 +160,6 @@ func ErrorCtx(ctx context.Context, msg string, fields ...any) {
 
 // StandardLogger creates a standard log.Logger instance with the specified level.
 // This is useful for compatibility with libraries expecting a standard logger.
-func StandardLogger(level Level) *log.Logger {
-	return slog.NewLogLogger(newHandler(), slog.Level(level))
+func StandardLogger(level Level, outputs ...io.Writer) *log.Logger {
+	return slog.NewLogLogger(newHandler(level, outputs...), slog.Level(level))
 }
