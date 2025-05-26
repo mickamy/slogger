@@ -65,9 +65,6 @@ func init() {
 // This function must be called before using the logger.
 func Init(cfg Config) {
 	config = ensureDefaults(cfg)
-	if cfg.Handler == nil {
-		cfg.Handler = newHandler()
-	}
 	logger = slog.New(config.Handler)
 }
 
@@ -81,6 +78,9 @@ func ensureDefaults(cfg Config) Config {
 	}
 	if cfg.ContextFieldsExtractor == nil {
 		cfg.ContextFieldsExtractor = func(context.Context) []any { return nil }
+	}
+	if cfg.Handler == nil {
+		cfg.Handler = newHandler()
 	}
 	return cfg
 }
