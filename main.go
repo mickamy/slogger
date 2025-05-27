@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"log/slog"
+	"os"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -73,14 +74,17 @@ func SetConfig(c Config) {
 }
 
 // ensureDefaults ensures the configuration has default values for unset fields.
-func ensureDefaults(cfg Config) Config {
-	if cfg.ContextFieldsExtractor == nil {
-		cfg.ContextFieldsExtractor = func(context.Context) []any { return nil }
+func ensureDefaults(c Config) Config {
+	if c.Outputs == nil {
+		c.Outputs = []io.Writer{os.Stdout}
 	}
-	if cfg.Handler == nil {
-		cfg.Handler = DefaultHandler(cfg.Level, cfg.Outputs...)
+	if c.ContextFieldsExtractor == nil {
+		c.ContextFieldsExtractor = func(context.Context) []any { return nil }
 	}
-	return cfg
+	if c.Handler == nil {
+		c.Handler = DefaultHandler(c.Level, c.Outputs...)
+	}
+	return c
 }
 
 // DefaultHandler creates a new slog.JSONHandler with the configured options.
