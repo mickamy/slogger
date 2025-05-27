@@ -63,13 +63,13 @@ var (
 )
 
 func init() {
-	SetConfig(Config{})
+	SetConfig(ensureDefaults(Config{}))
 }
 
 // SetConfig initializes the slogger library with the given configuration.
 // This function must be called before using the logger.
 func SetConfig(c Config) {
-	cfg = ensureDefaults(c)
+	cfg = c
 	logger = slog.New(cfg.Handler)
 }
 
