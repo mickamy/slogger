@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"log/slog"
-	"os"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -33,13 +32,18 @@ const (
 // Config defines the configuration for the slogger library.
 type Config struct {
 	// Level defines the minimum logging level.
+	// The default is LevelInfo.
 	Level
 
-	// Outputs is the list of writers to which the logs will be written.
-	Outputs []io.Writer
+	// AddSource indicates whether to add the source file and line number to the log entries.
+	// The default is false.
+	AddSource bool
 
 	// TrimPathPrefix is the prefix to be trimmed from the file path in the log output.
 	TrimPathPrefix string
+
+	// Outputs is the list of writers to which the logs will be written.
+	Outputs []io.Writer
 
 	// ContextFieldsExtractor is a function that extracts additional fields from the context.
 	ContextFieldsExtractor func(ctx context.Context) []any
@@ -53,40 +57,34 @@ var (
 	// logger is the global instance of slog.Logger.
 	logger *slog.Logger
 
-	// config is the global configuration for the logger.
-	config Config
+	// cfg is the global configuration for the logger.
+	cfg Config
 )
 
 func init() {
-	Init(Config{})
+	SetConfig(Config{})
 }
 
-// Init initializes the slogger library with the given configuration.
+// SetConfig initializes the slogger library with the given configuration.
 // This function must be called before using the logger.
-func Init(cfg Config) {
-	config = ensureDefaults(cfg)
-	logger = slog.New(config.Handler)
+func SetConfig(c Config) {
+	cfg = ensureDefaults(c)
+	logger = slog.New(cfg.Handler)
 }
 
 // ensureDefaults ensures the configuration has default values for unset fields.
 func ensureDefaults(cfg Config) Config {
-	if cfg.Level == 0 {
-		cfg.Level = LevelInfo
-	}
-	if cfg.Outputs == nil {
-		cfg.Outputs = []io.Writer{os.Stdout}
-	}
 	if cfg.ContextFieldsExtractor == nil {
 		cfg.ContextFieldsExtractor = func(context.Context) []any { return nil }
 	}
 	if cfg.Handler == nil {
-		cfg.Handler = newHandler(cfg.Level, cfg.Outputs...)
+		cfg.Handler = DefaultHandler(cfg.Level, cfg.Outputs...)
 	}
 	return cfg
 }
 
-// newHandler creates a new slog.JSONHandler with the configured options.
-func newHandler(level Level, outputs ...io.Writer) *slog.JSONHandler {
+// DefaultHandler creates a new slog.JSONHandler with the configured options.
+func DefaultHandler(level Level, outputs ...io.Writer) *slog.JSONHandler {
 	options := &slog.HandlerOptions{
 		Level: slog.Level(level),
 	}
@@ -96,24 +94,28 @@ func newHandler(level Level, outputs ...io.Writer) *slog.JSONHandler {
 
 // handle logs a message with the specified level and arguments.
 func handle(level Level, msg string, fields ...any) {
-	_, file, line, _ := runtime.Caller(2)
-	source := fmt.Sprintf("%s:%d", file, line)
+	if cfg.AddSource {
+		_, file, line, _ := runtime.Caller(2)
+		source := fmt.Sprintf("%s:%d", file, line)
 
-	source = strings.TrimPrefix(source, path.Join(config.TrimPathPrefix, ""))
-	fields = append(fields, slog.String("source", source))
+		source = strings.TrimPrefix(source, path.Join(cfg.TrimPathPrefix, ""))
+		fields = append(fields, slog.String("source", source))
+	}
 
 	logger.Log(context.Background(), slog.Level(level), msg, fields...)
 }
 
 // handleCtx logs a message with the specified level, arguments, and context.
 func handleCtx(ctx context.Context, level Level, msg string, fields ...any) {
-	_, file, line, _ := runtime.Caller(2)
-	source := fmt.Sprintf("%s:%d", file, line)
+	if cfg.AddSource {
+		_, file, line, _ := runtime.Caller(2)
+		source := fmt.Sprintf("%s:%d", file, line)
 
-	fields = append(fields, config.ContextFieldsExtractor(ctx)...)
+		fields = append(fields, cfg.ContextFieldsExtractor(ctx)...)
 
-	source = strings.TrimPrefix(source, filepath.Join(config.TrimPathPrefix, ""))
-	fields = append(fields, slog.String("source", source))
+		source = strings.TrimPrefix(source, filepath.Join(cfg.TrimPathPrefix, ""))
+		fields = append(fields, slog.String("source", source))
+	}
 
 	logger.Log(ctx, slog.Level(level), msg, fields...)
 }
@@ -161,5 +163,5 @@ func ErrorCtx(ctx context.Context, msg string, fields ...any) {
 // StandardLogger creates a standard log.Logger instance with the specified level.
 // This is useful for compatibility with libraries expecting a standard logger.
 func StandardLogger(level Level, outputs ...io.Writer) *log.Logger {
-	return slog.NewLogLogger(newHandler(level, outputs...), slog.Level(level))
+	return slog.NewLogLogger(DefaultHandler(level, outputs...), slog.Level(level))
 }
